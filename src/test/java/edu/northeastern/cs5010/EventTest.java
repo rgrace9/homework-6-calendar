@@ -1,8 +1,10 @@
 package edu.northeastern.cs5010;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.northeastern.cs5010.Event.Visibility;
 import java.time.LocalDate;
@@ -26,8 +28,6 @@ class EventTest {
     afternoon = LocalTime.of(14, 0);
     evening = LocalTime.of(18, 0);
   }
-
-  // ========== Required Fields Tests ==========
 
   @Test
   void hasSubject() {
@@ -99,12 +99,22 @@ class EventTest {
   }
 
   @Test
+  void endTimeCanBeBeforeStartTimeOnDifferentDays() {
+    Event event = new Event.Builder("Meeting", today, tomorrow)
+        .startTime(afternoon)
+        .endTime(morning)
+        .build();
+
+    assertEquals(morning, event.getEndTime());
+  }
+
+  @Test
   void eventWithStartTimeIsNotAllDayEvent() {
     Event event = new Event.Builder("Conference", today, today)
         .startTime(afternoon)
         .build();
 
-    asserFalse(event.isAllDayEvent());
+    assertFalse(event.isAllDayEvent());
   }
 
   @Test
@@ -122,10 +132,10 @@ class EventTest {
   }
 
   @Test
-  void eventWithoutStartTimeHasNullEndTime() {
-    Event event = new Event.Builder("Conference", today, today).build();
-
-    assertNull(event.getEndTime());
+  void eventWithoutStartTimeCannotHaveEndTime() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new Event.Builder(null, today, today).endTime(morning).build();
+    });
   }
 
   @Test
