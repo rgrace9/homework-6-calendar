@@ -34,6 +34,16 @@ public class Event {
 
 
     public Builder(String subject, LocalDate startDate, LocalDate endDate) {
+      if (subject == null || subject.trim().isEmpty()) {
+        throw new IllegalArgumentException("Subject cannot be null or empty");
+      }
+      if (startDate == null) {
+        throw new IllegalArgumentException("Start date cannot be null");
+      }
+      if (endDate == null) {
+        throw new IllegalArgumentException("End date cannot be null");
+      }
+
       this.subject = subject;
       this.startDate = startDate;
       this.endDate = endDate;
@@ -45,7 +55,7 @@ public class Event {
     }
 
     public Builder endTime(LocalTime end) {
-      this.startTime = end;
+      this.endTime = end;
       return this;
     }
 
@@ -65,7 +75,24 @@ public class Event {
     }
 
     public Event build() {
+      validateDateTime();
       return new Event(this);
+    }
+
+    private void validateDateTime() {
+      if (endDate.isBefore(startDate)) {
+        throw new IllegalArgumentException("End date cannot be before start date");
+      }
+
+      if (startTime == null && endTime != null) {
+        throw new IllegalArgumentException("Event without start time must NOT have end time");
+      }
+      
+      if (endDate.equals(startDate) && endTime != null && endTime.isBefore(
+          startTime)) {
+        throw new IllegalArgumentException("End time cannot be before start time on the same day");
+      }
+
     }
   }
 
@@ -73,6 +100,11 @@ public class Event {
     this.subject = builder.subject;
     this.startDate = builder.startDate;
     this.endDate = builder.endDate;
+    this.startTime = builder.startTime;
+    this.endTime = builder.endTime;
+    this.description = builder.description;
+    this.location = builder.location;
+    this.visibility = builder.visibility != null ? builder.visibility : Visibility.PUBLIC;
   }
 
   public String getSubject() {
@@ -106,5 +138,9 @@ public class Event {
   public Visibility getVisibility() {
     return visibility;
   }
-  
+
+  public Boolean isAllDayEvent() {
+    return startTime == null;
+  }
+
 }
