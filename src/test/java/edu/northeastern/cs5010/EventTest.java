@@ -112,6 +112,17 @@ class EventTest {
   void eventWithStartTimeIsNotAllDayEvent() {
     Event event = new Event.Builder("Conference", today, today)
         .startTime(afternoon)
+        .endTime(evening)
+        .build();
+
+    assertFalse(event.isAllDayEvent());
+  }
+
+  @Test
+  void eventWithStartTimeMustHaveEndTime() {
+    Event event = new Event.Builder("Conference", today, today)
+        .startTime(afternoon)
+        .endTime(afternoon)
         .build();
 
     assertFalse(event.isAllDayEvent());
