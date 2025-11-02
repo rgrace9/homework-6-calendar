@@ -87,7 +87,11 @@ public class Event {
       if (startTime == null && endTime != null) {
         throw new IllegalArgumentException("Event without start time must NOT have end time");
       }
-      
+
+      if (startTime != null && endTime == null) {
+        throw new IllegalArgumentException("Event with start time must have end time");
+      }
+
       if (endDate.equals(startDate) && endTime != null && endTime.isBefore(
           startTime)) {
         throw new IllegalArgumentException("End time cannot be before start time on the same day");
