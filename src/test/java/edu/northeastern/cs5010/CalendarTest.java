@@ -87,19 +87,9 @@ public class CalendarTest {
 
   @Test
   public void addMultipleEventsResultsInCorrectSize() {
-    Event event1 = new Event.Builder("Meeting", nov15, nov15)
-        .startTime(LocalTime.of(10, 0))
-        .build();
-    Event event2 = new Event.Builder("Lunch", nov15, nov15)
-        .startTime(LocalTime.of(12, 0))
-        .build();
-    Event event3 = new Event.Builder("Conference", nov16, nov16)
-        .startTime(LocalTime.of(9, 0))
-        .build();
-
-    calendar.addEvent(event1);
-    calendar.addEvent(event2);
-    calendar.addEvent(event3);
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(lunchEvent);
+    calendar.addEvent(conferenceAllDayEvent);
 
     assertEquals(3, calendar.getEvent().size());
   }
