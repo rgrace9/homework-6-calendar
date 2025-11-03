@@ -1,6 +1,7 @@
 package edu.northeastern.cs5010;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,8 +40,6 @@ public class CalendarTest {
     conferenceAllDayEvent = new Event.Builder("Conference", nov16, nov16).build();
   }
 
-  // ========== Constructor Tests ==========
-
   @Test
   public void constructorWithValidTitle() {
     Calendar cal = new Calendar("My Calendar");
@@ -63,26 +62,16 @@ public class CalendarTest {
 
   @Test
   public void addSingleEventResultsInOneEvent() {
-    Event event = new Event.Builder("Meeting", nov15, nov15)
-        .startTime(LocalTime.of(10, 0))
-        .endTime(LocalTime.of(11, 0))
-        .build();
-
-    calendar.addEvent(event);
+    calendar.addEvent(meetingEvent);
 
     assertEquals(1, calendar.getEvent().size());
   }
 
   @Test
   public void addSingleEventContainsEvent() {
-    Event event = new Event.Builder("Meeting", nov15, nov15)
-        .startTime(LocalTime.of(10, 0))
-        .endTime(LocalTime.of(11, 0))
-        .build();
+    calendar.addEvent(meetingEvent);
 
-    calendar.addEvent(event);
-
-    assertTrue(calendar.getEvent().contains(event));
+    assertTrue(calendar.getEvent().contains(meetingEvent));
   }
 
   @Test
@@ -143,8 +132,7 @@ public class CalendarTest {
 
   @Test
   public void getEventsOnDateNoEventsReturnsEmpty() {
-    Event event = new Event.Builder("Mom's Birthday", nov15, nov15).build();
-    calendar.addEvent(event);
+    calendar.addEvent(meetingEvent);
 
     assertTrue(calendar.getEventsOnDate(LocalDate.of(2025, 11, 20)).isEmpty());
   }
@@ -169,36 +157,35 @@ public class CalendarTest {
 
   @Test
   public void getEventsInDateRangeIncludesStartDate() {
-    Event event1 = new Event.Builder("Meeting", nov15, nov15).build();
-    Event event2 = new Event.Builder("Conference", nov16, nov16).build();
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(conferenceAllDayEvent);
 
-    calendar.addEvent(event1);
-    calendar.addEvent(event2);
-
-    assertTrue(calendar.getEventsInDateRange(nov15, nov16).contains(event1));
+    assertTrue(calendar.getEventsInDateRange(nov15, nov16).contains(meetingEvent));
   }
 
   @Test
   public void getEventsInDateRangeIncludesEndDate() {
-    Event event1 = new Event.Builder("Meeting", nov15, nov15).build();
-    Event event2 = new Event.Builder("Conference", nov16, nov16).build();
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(conferenceAllDayEvent);
 
-    calendar.addEvent(event1);
-    calendar.addEvent(event2);
-
-    assertTrue(calendar.getEventsInDateRange(nov15, nov16).contains(event2));
+    assertTrue(calendar.getEventsInDateRange(nov15, nov16).contains(conferenceAllDayEvent));
   }
 
   @ParameterizedTest
   @CsvSource({
-      "2025-11-15, 10:00, true",   // During event
-      "2025-11-15, 10:30, true",   // Middle of event
-      "2025-11-15, 10:59, true",   // End of event
-      "2025-11-15, 14:00, false",  // After event
-      "2025-11-16, 10:30, false"   // Different date
+      // During event
+      "2025-11-15, 10:00, true",
+      // Middle of event
+      "2025-11-15, 10:30, true",
+      // End of event
+      "2025-11-15, 10:59, true",
+      // After event
+      "2025-11-15, 14:00, false",
+      // Different date
+      "2025-11-16, 10:30, false"
   })
   public void isUserBusy(String dateStr, String timeStr, boolean expected) {
-    Event event = new Event.Builder("Meeting", nov15, nov15)
+    Event event = new Event.Builder("Dentist Appointment", nov15, nov15)
         .startTime(LocalTime.of(10, 0))
         .endTime(LocalTime.of(11, 0))
         .build();
@@ -208,5 +195,77 @@ public class CalendarTest {
     assertEquals(expected, calendar.isUserBusy(
         LocalDate.parse(dateStr),
         LocalTime.parse(timeStr)));
+  }
+
+  @Test
+  public void userBusyDuringEventReturnsTrue() {
+    calendar.addEvent(conferenceAllDayEvent);
+    assertTrue(calendar.isUserBusy(nov16, LocalTime.of(9, 30)));
+  }
+
+  @Test
+  public void userNotBusyOutsideEventReturnsFalse() {
+    calendar.addEvent(lunchEvent);
+    assertFalse(calendar.isUserBusy(nov15, LocalTime.of(14, 15)));
+  }
+
+  @Test
+  public void allDayEventMakesUserBusyAllDay() {
+    calendar.addEvent(conferenceAllDayEvent);
+    assertTrue(calendar.isUserBusy(nov16, LocalTime.of(15, 0)));
+  }
+
+
+  @Test
+  public void editEventSuccessfullyUpdates() {
+    calendar.addEvent(conferenceAllDayEvent);
+
+    Event updated = conferenceAllDayEvent.toBuilder().subject("Interview").build();
+    calendar.editEvent(conferenceAllDayEvent, updated);
+
+    assertEquals("Interview", calendar.getEvent("Interview", nov16, null).getSubject());
+  }
+
+  @Test
+  public void editEventThrowsWhenDuplicateExists() {
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(lunchEvent);
+
+    Event lunchDuplicate = meetingEvent.toBuilder()
+        .subject("Lunch")
+        .startTime(LocalTime.of(12, 0))
+        .endTime(LocalTime.of(13, 0))
+        .build();
+    assertThrows(IllegalArgumentException.class,
+        () -> calendar.editEvent(meetingEvent, lunchDuplicate));
+  }
+
+  @Test
+  public void editEventThrowsWhenConflictNotAllowed() {
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(lunchEvent);
+
+    Event overlapWithLunch = meetingEvent.toBuilder()
+        .startTime(LocalTime.of(12, 25))
+        .endTime(LocalTime.of(12, 55))
+        .build();
+    assertThrows(IllegalArgumentException.class,
+        () -> calendar.editEvent(meetingEvent, overlapWithLunch));
+  }
+
+  @Test
+  public void editEventAllowsConflicts() {
+    Calendar calendarWithConflictsAllowed = new Calendar("Personal Calendar", true);
+    calendarWithConflictsAllowed.addEvent(meetingEvent);
+    calendarWithConflictsAllowed.addEvent(lunchEvent);
+
+    Event overlapWithLunch = meetingEvent.toBuilder()
+        .startTime(LocalTime.of(12, 25))
+        .endTime(LocalTime.of(12, 55))
+        .build();
+    calendarWithConflictsAllowed.editEvent(meetingEvent, overlapWithLunch);
+    assertEquals(LocalTime.of(12, 25),
+        calendarWithConflictsAllowed.getEvent("Meeting", nov15, LocalTime.of(12, 25))
+            .getStartTime());
   }
 }
