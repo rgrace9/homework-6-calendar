@@ -150,6 +150,25 @@ class EventTest {
   }
 
   @Test
+  public void eventWithoutStartTimeButWithEndTimeThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new Event.Builder("Invalid Event", tomorrow, tomorrow)
+          .endTime(LocalTime.of(10, 0))
+          .build();
+    });
+  }
+
+  @Test
+  public void eventWithStartTimeButWithoutEndTimeThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new Event.Builder("Invalid Event", today, today)
+          .startTime(LocalTime.of(10, 0))
+          .build();
+    });
+  }
+
+
+  @Test
   void canSpanMultipleDaysHasCorrectStartDate() {
     LocalDate nextWeek = today.plusDays(7);
     Event event = new Event.Builder("Vacation", today, nextWeek).build();
@@ -267,5 +286,23 @@ class EventTest {
     Event updated = original.toBuilder().subject("Interview").build();
 
     assertEquals("Interview", updated.getSubject());
+  }
+
+  @Test
+  public void editStartDate() {
+    Event original = new Event.Builder("Meeting", today, tomorrow).build();
+
+    Event updated = original.toBuilder().startDate(tomorrow).build();
+
+    assertEquals(tomorrow, updated.getStartDate());
+  }
+
+  @Test
+  public void editEndDate() {
+    Event original = new Event.Builder("Meeting", today, today).build();
+
+    Event updated = original.toBuilder().endDate(tomorrow).build();
+
+    assertEquals(tomorrow, updated.getEndDate());
   }
 }
