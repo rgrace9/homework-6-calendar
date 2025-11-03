@@ -49,6 +49,22 @@ public class Event {
       this.endDate = endDate;
     }
 
+    public Builder subject(String subject) {
+      this.subject = subject;
+      return this;
+    }
+
+    public Builder startDate(LocalDate date) {
+      this.startDate = date;
+      return this;
+    }
+
+    public Builder endDate(LocalDate date) {
+      this.endDate = date;
+      return this;
+    }
+
+
     public Builder startTime(LocalTime start) {
       this.startTime = start;
       return this;
@@ -145,6 +161,15 @@ public class Event {
 
   public Boolean isAllDayEvent() {
     return startTime == null;
+  }
+
+  public Builder toBuilder() {
+    return new Builder(this.subject, this.startDate, this.endDate)
+        .startTime(this.startTime)
+        .endTime(this.endTime)
+        .description(this.description)
+        .location(this.location)
+        .visibility(this.visibility);
   }
 
 }
