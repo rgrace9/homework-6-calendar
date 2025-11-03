@@ -108,7 +108,7 @@ public class Event {
         throw new IllegalArgumentException("Event with start time must have end time");
       }
 
-      if (endDate.equals(startDate) && endTime != null && endTime.isBefore(
+      if (endDate.isEqual(startDate) && endTime != null && endTime.isBefore(
           startTime)) {
         throw new IllegalArgumentException("End time cannot be before start time on the same day");
       }
