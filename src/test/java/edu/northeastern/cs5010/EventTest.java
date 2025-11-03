@@ -246,4 +246,26 @@ class EventTest {
 
     assertEquals(Visibility.PUBLIC, event.getVisibility());
   }
+
+  @Test
+  public void editDescription() {
+    Event original = new Event.Builder("Meeting", today, tomorrow)
+        .description("Team sync")
+        .build();
+
+    Event updated = original.toBuilder()
+        .description("Updated team sync")
+        .build();
+
+    assertEquals("Updated team sync", updated.getDescription());
+  }
+
+  @Test
+  public void editSubject() {
+    Event original = new Event.Builder("Meeting", today, today).build();
+
+    Event updated = original.toBuilder().subject("Interview").build();
+
+    assertEquals("Interview", updated.getSubject());
+  }
 }
