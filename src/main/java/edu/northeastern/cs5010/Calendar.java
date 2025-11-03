@@ -21,7 +21,7 @@ public class Calendar {
   public void setAllowConflicts(boolean doesAllow) {
     this.allowConflicts = doesAllow;
   }
-  
+
   public String getTitle() {
     return title;
   }
@@ -35,18 +35,63 @@ public class Calendar {
   }
 
   public Event getEvent(String subject, LocalDate date, LocalTime time) {
+    for (Event event : events) {
+      boolean sameSubject = event.getSubject().equalsIgnoreCase(subject);
+      boolean sameDate = event.getStartDate().equals(date);
+      boolean sameTime = (event.getStartTime() == null && time == null)
+          || (event.getStartTime() != null && event.getStartTime().equals(time));
+
+      if (sameSubject && sameDate && sameTime) {
+        return event;
+      }
+    }
     return null;
   }
 
   public List<Event> getEventsOnDate(LocalDate date) {
-    return new ArrayList<>();
+    List<Event> result = new ArrayList<>();
+    for (Event event : events) {
+      if ((date.isEqual(event.getStartDate()) || date.isEqual(event.getEndDate())) ||
+          (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate()))) {
+        result.add(event);
+      }
+    }
+    return result;
   }
 
   public List<Event> getEventsInDateRange(LocalDate start, LocalDate end) {
-    return new ArrayList<>();
+    List<Event> result = new ArrayList<>();
+    for (Event event : events) {
+      if (!(event.getEndDate().isBefore(start) || event.getStartDate().isAfter(end))) {
+        result.add(event);
+      }
+    }
+    return result;
   }
 
   public boolean isUserBusy(LocalDate date, LocalTime time) {
+    for (Event event : events) {
+      boolean sameDay = date.isEqual(event.getStartDate()) ||
+          (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate())) ||
+          date.isEqual(event.getEndDate());
+
+      if (!sameDay) {
+        continue;
+      }
+
+      if (event.isAllDayEvent()) {
+        return true;
+      }
+
+      LocalTime startTime = event.getStartTime();
+      LocalTime endTime = event.getEndTime();
+
+      boolean withinTime = startTime != null && endTime != null && !time.isBefore(startTime) &&
+          !time.isAfter(endTime);
+      if (withinTime) {
+        return true;
+      }
+    }
     return false;
   }
 
