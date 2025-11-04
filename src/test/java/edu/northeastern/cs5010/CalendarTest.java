@@ -245,6 +245,23 @@ public class CalendarTest {
   }
 
   @Test
+  void testEditEventUpdatesEventInList() {
+    calendar.addEvent(lunchEvent);
+    calendar.addEvent(meetingEvent);
+
+    Event updatedMeeting = meetingEvent.toBuilder()
+        .startTime(LocalTime.of(14, 0))
+        .endTime(LocalTime.of(16, 0))
+        .build();
+
+    calendar.editEvent(meetingEvent, updatedMeeting);
+
+    Event result = calendar.getEvents().get(1);
+    assertEquals(LocalTime.of(14, 0), result.getStartTime());
+  }
+
+
+  @Test
   public void editEventThrowsWhenDuplicateExists() {
     calendar.addEvent(meetingEvent);
     calendar.addEvent(lunchEvent);

@@ -118,7 +118,7 @@ public class Calendar {
     }
 
     int index = events.indexOf(original);
-    if (index <= 0) {
+    if (index >= 0) {
       events.set(index, updated);
     } else {
       throw new IllegalArgumentException("Event to edit not found in calendar");
@@ -153,7 +153,7 @@ public class Calendar {
   public void editEntireSeries(String seriesId, Event updatedEvent) {
 
   }
-  
+
   private boolean eventsOverlap(Event existingEvent, Event newEvent) {
     boolean overlappingDates = !(existingEvent.getEndDate().isBefore(newEvent.getStartDate()) ||
         existingEvent.getStartDate().isAfter(newEvent.getEndDate()));
