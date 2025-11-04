@@ -43,18 +43,6 @@ public class Calendar {
     events.add(newEvent);
   }
 
-  private void checkEventDuplication(Event newEvent, Event existing) {
-    boolean sameSubject = existing.getSubject().equalsIgnoreCase(newEvent.getSubject());
-    boolean sameDate = existing.getStartDate().equals(newEvent.getStartDate());
-    boolean sameTime = (existing.getStartTime() == null && newEvent.getStartTime() == null)
-        || (existing.getStartTime() != null && existing.getStartTime()
-        .equals(newEvent.getStartTime()));
-
-    if (sameSubject && sameDate && sameTime) {
-      throw new IllegalArgumentException("Duplicate event not allowed");
-    }
-  }
-
   public Event getEvent(String subject, LocalDate date, LocalTime time) {
     for (Event event : events) {
       boolean sameSubject = event.getSubject().equalsIgnoreCase(subject);
@@ -88,21 +76,6 @@ public class Calendar {
       }
     }
     return result;
-  }
-
-  private boolean eventsOverlap(Event eventA, Event eventB) {
-    boolean overlappingDates = !(eventA.getEndDate().isBefore(eventB.getStartDate()) ||
-        eventA.getStartDate().isAfter(eventB.getEndDate()));
-    if (!overlappingDates) {
-      return false;
-    }
-
-    if (eventA.isAllDayEvent() || eventB.isAllDayEvent()) {
-      return true;
-    }
-
-    return !eventA.getEndTime().isBefore(eventB.getStartTime()) &&
-        !eventA.getStartTime().isAfter(eventB.getEndTime());
   }
 
   public boolean isUserBusy(LocalDate date, LocalTime time) {
@@ -149,6 +122,52 @@ public class Calendar {
       events.set(index, updated);
     } else {
       throw new IllegalArgumentException("Event to edit not found in calendar");
+    }
+  }
+
+  public void addRecurringEvent(RecurringEvent recurringEvent) {
+    List<Event> generatedEventsList = recurringEvent.generateEvents();
+    for (Event newEvent : generatedEventsList) {
+      for (Event existingEvent : events) {
+        checkEventDuplication(newEvent, existingEvent);
+
+        if (!allowConflicts && eventsOverlap(existingEvent, newEvent)) {
+          throw new IllegalArgumentException(
+              "Recurring event cannot be created because at least one instance conflicts with an existing event"
+          );
+        }
+      }
+    }
+
+    for (Event newEvent : generatedEventsList) {
+      addEvent(newEvent);
+    }
+  }
+
+  private boolean eventsOverlap(Event existingEvent, Event newEvent) {
+    boolean overlappingDates = !(existingEvent.getEndDate().isBefore(newEvent.getStartDate()) ||
+        existingEvent.getStartDate().isAfter(newEvent.getEndDate()));
+    if (!overlappingDates) {
+      return false;
+    }
+
+    if (existingEvent.isAllDayEvent() || newEvent.isAllDayEvent()) {
+      return true;
+    }
+
+    return !existingEvent.getEndTime().isBefore(newEvent.getStartTime()) &&
+        !existingEvent.getStartTime().isAfter(newEvent.getEndTime());
+  }
+
+  private void checkEventDuplication(Event newEvent, Event existing) {
+    boolean sameSubject = existing.getSubject().equalsIgnoreCase(newEvent.getSubject());
+    boolean sameDate = existing.getStartDate().equals(newEvent.getStartDate());
+    boolean sameTime = (existing.getStartTime() == null && newEvent.getStartTime() == null)
+        || (existing.getStartTime() != null && existing.getStartTime()
+        .equals(newEvent.getStartTime()));
+
+    if (sameSubject && sameDate && sameTime) {
+      throw new IllegalArgumentException("Duplicate event not allowed");
     }
   }
 
