@@ -371,15 +371,15 @@ public class CalendarTest {
   }
 
   @Test
-  void editEntireRecurringSeries() {
-    Event updatedTemplate = new Event.Builder("Pilates (Updated)",
+  void editEntireRecurringEventSeries() {
+    Event updatedEvent = new Event.Builder("Pilates (Updated)",
         LocalDate.of(2025, 11, 9),
         LocalDate.of(2025, 11, 9))
         .startTime(LocalTime.of(5, 30))
         .endTime(LocalTime.of(6, 20))
         .build();
 
-    exerciseCalendar.editEntireSeries(pilatesSeriesId, updatedTemplate);
+    exerciseCalendar.editEntireSeries(pilatesSeriesId, updatedEvent);
 
     for (Event e : exerciseCalendar.getEvents()) {
       assertEquals(LocalTime.of(5, 30), e.getStartTime());

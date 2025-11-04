@@ -33,11 +33,7 @@ public class Calendar {
 
   public void addEvent(Event newEvent) {
     for (Event existing : events) {
-      checkEventDuplication(newEvent, existing);
-
-      if (!allowConflicts && eventsOverlap(existing, newEvent)) {
-        throw new IllegalArgumentException("Event conflicts with an existing event");
-      }
+      checkEventConflicts(newEvent, existing, "Event conflicts with an existing event");
     }
 
     events.add(newEvent);
@@ -110,11 +106,11 @@ public class Calendar {
         continue;
       }
 
-      checkEventDuplication(updated, event);
-
-      if (!allowConflicts && eventsOverlap(event, updated)) {
-        throw new IllegalArgumentException("Edited event conflicts with another event");
-      }
+      checkEventConflicts(
+          updated,
+          event,
+          "Edited event conflicts with another event"
+      );
     }
 
     int index = events.indexOf(original);
@@ -129,13 +125,11 @@ public class Calendar {
     List<Event> generatedEventsList = recurringEvent.generateEvents();
     for (Event newEvent : generatedEventsList) {
       for (Event existingEvent : events) {
-        checkEventDuplication(newEvent, existingEvent);
-
-        if (!allowConflicts && eventsOverlap(existingEvent, newEvent)) {
-          throw new IllegalArgumentException(
-              "Recurring event cannot be created because at least one instance conflicts with an existing event"
-          );
-        }
+        checkEventConflicts(
+            newEvent,
+            existingEvent,
+            "Recurring event cannot be created because at least one instance conflicts with an existing event"
+        );
       }
     }
 
@@ -145,13 +139,86 @@ public class Calendar {
   }
 
   public void editSingleInstance(Event originalEvent, Event updatedEvent) {
+    if (originalEvent == null || updatedEvent == null) {
+      throw new IllegalArgumentException("Events cannot be null");
+    }
+
+    int eventIndex = events.indexOf(originalEvent);
+    if (eventIndex < 0) {
+      throw new IllegalArgumentException("Event not found in calendar");
+    }
+
+    for (Event existingEvent : events) {
+      if (existingEvent == originalEvent) {
+        continue;
+      }
+      checkEventConflicts(
+          updatedEvent,
+          existingEvent,
+          "Updated event conflicts with an existing event"
+      );
+    }
+    events.set(eventIndex, updatedEvent);
   }
 
   public void editFutureInstances(String seriesId, LocalDate fromDate, Event updatedEvent) {
+    if (seriesId == null || fromDate == null || updatedEvent == null) {
+      throw new IllegalArgumentException("Arguments cannot be null");
+    }
+
+    List<Event> futureEvents = new ArrayList<>();
+    for (Event e : events) {
+      if (seriesId.equals(e.getSeriesId()) && !e.getStartDate().isBefore(fromDate)) {
+        futureEvents.add(e);
+      }
+    }
+    if (futureEvents.isEmpty()) {
+      throw new IllegalArgumentException("No future events found for this series");
+    }
+
+    checkSeriesConflicts(seriesId, futureEvents, updatedEvent);
+
+    for (int i = 0; i < events.size(); i++) {
+      Event e = events.get(i);
+      if (seriesId.equals(e.getSeriesId()) && !e.getStartDate().isBefore(fromDate)) {
+        events.set(i, updatedEvent.toBuilder()
+            .startDate(e.getStartDate())
+            .endDate(e.getEndDate())
+            .seriesId(seriesId)
+            .build());
+      }
+    }
+
+
   }
 
   public void editEntireSeries(String seriesId, Event updatedEvent) {
+    if (seriesId == null || updatedEvent == null) {
+      throw new IllegalArgumentException("There must be a seriesId and updated event");
+    }
 
+    List<Event> seriesEvents = new ArrayList<>();
+    for (Event e : events) {
+      if (seriesId.equals(e.getSeriesId())) {
+        seriesEvents.add(e);
+      }
+    }
+    if (seriesEvents.isEmpty()) {
+      throw new IllegalArgumentException("Series not found in calendar");
+    }
+
+    checkSeriesConflicts(seriesId, seriesEvents, updatedEvent);
+
+    for (int i = 0; i < events.size(); i++) {
+      Event e = events.get(i);
+      if (seriesId.equals(e.getSeriesId())) {
+        events.set(i, updatedEvent.toBuilder()
+            .startDate(e.getStartDate())
+            .endDate(e.getEndDate())
+            .seriesId(seriesId)
+            .build());
+      }
+    }
   }
 
   private boolean eventsOverlap(Event existingEvent, Event newEvent) {
@@ -169,15 +236,39 @@ public class Calendar {
         !existingEvent.getStartTime().isAfter(newEvent.getEndTime());
   }
 
-  private void checkEventDuplication(Event newEvent, Event existing) {
-    boolean sameSubject = existing.getSubject().equalsIgnoreCase(newEvent.getSubject());
-    boolean sameDate = existing.getStartDate().equals(newEvent.getStartDate());
-    boolean sameTime = (existing.getStartTime() == null && newEvent.getStartTime() == null)
-        || (existing.getStartTime() != null && existing.getStartTime()
+  private void checkEventDuplication(Event existingEvent, Event newEvent) {
+    boolean sameSubject = existingEvent.getSubject().equalsIgnoreCase(newEvent.getSubject());
+    boolean sameDate = existingEvent.getStartDate().equals(newEvent.getStartDate());
+    boolean sameTime = (existingEvent.getStartTime() == null && newEvent.getStartTime() == null)
+        || (existingEvent.getStartTime() != null && existingEvent.getStartTime()
         .equals(newEvent.getStartTime()));
 
     if (sameSubject && sameDate && sameTime) {
       throw new IllegalArgumentException("Duplicate event not allowed");
+    }
+  }
+
+  private void checkEventConflicts(Event newEvent, Event existingEvent, String errorMessage) {
+    checkEventDuplication(existingEvent, newEvent);
+
+    if (!allowConflicts && eventsOverlap(existingEvent, newEvent)) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+  }
+
+  private void checkSeriesConflicts(String id, List<Event> eventsToUpdate, Event updatedEvent) {
+    for (Event event : eventsToUpdate) {
+      Event updatedCopy = updatedEvent.toBuilder()
+          .startDate(event.getStartDate())
+          .endDate(event.getEndDate())
+          .seriesId(id)
+          .build();
+
+      for (Event other : events) {
+        if (!id.equals(other.getSeriesId())) {
+          checkEventConflicts(updatedCopy, other, "Update would cause a conflict");
+        }
+      }
     }
   }
 
