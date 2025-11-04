@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,11 +31,14 @@ public class CalendarTest {
   private Event lunchEvent;
   private Event conferenceAllDayEvent;
   private String pilatesSeriesId;
+  private Path tempFile;
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws IOException {
     calendar = new Calendar("Work Calendar");
     exerciseCalendar = new Calendar("Exercise Calendar");
+    tempFile = Files.createTempFile("calendar_export_test", ".csv");
+
     nov15 = LocalDate.of(2025, 11, 15);
     nov16 = LocalDate.of(2025, 11, 16);
     meetingEvent = new Event.Builder("Meeting", nov15, nov15)
@@ -56,6 +63,11 @@ public class CalendarTest {
     );
     exerciseCalendar.addRecurringEvent(pilatesRecurringEvent);
     pilatesSeriesId = pilatesRecurringEvent.getSeriesId();
+  }
+
+  @AfterEach
+  void tearDown() throws IOException {
+    Files.deleteIfExists(tempFile);
   }
 
   @Test
@@ -384,6 +396,31 @@ public class CalendarTest {
     for (Event e : exerciseCalendar.getEvents()) {
       assertEquals(LocalTime.of(5, 30), e.getStartTime());
     }
+  }
+
+  @Test
+  void headerRowIsCorrect() throws IOException {
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(conferenceAllDayEvent);
+    calendar.exportToCsv(tempFile.toString());
+
+    List<String> lines = Files.readAllLines(tempFile);
+    assertEquals(
+        "Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private",
+        lines.getFirst()
+    );
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"Meeting", "11/15/2025", "10:00 AM"})
+  void meetingEventRowContainsExpectedValues(String expected) throws IOException {
+    calendar.addEvent(meetingEvent);
+    calendar.addEvent(conferenceAllDayEvent);
+    calendar.exportToCsv(tempFile.toString());
+
+    List<String> lines = Files.readAllLines(tempFile);
+    String meetingLine = lines.get(1);
+    assertTrue(meetingLine.contains(expected));
   }
 
 }
