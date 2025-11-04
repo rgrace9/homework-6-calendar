@@ -7,19 +7,20 @@ import java.util.List;
 
 public class Calendar {
 
-  private String title;
+  private final String title;
   private boolean allowConflicts = false;
-  private List<Event> events = new ArrayList<>();
+  private final List<Event> events = new ArrayList<>();
 
   public Calendar(String title) {
+    this(title, false);
+  }
+
+  public Calendar(String title, boolean allowConflicts) {
     if (title == null || title.trim().isEmpty()) {
       throw new IllegalArgumentException("Calendar title cannot be null or empty");
     }
     this.title = title;
-  }
-
-  public void setAllowConflicts(boolean doesAllow) {
-    this.allowConflicts = doesAllow;
+    this.allowConflicts = allowConflicts;
   }
 
   public String getTitle() {
@@ -30,8 +31,28 @@ public class Calendar {
     return new ArrayList<>(events);
   }
 
-  public void addEvent(Event event) {
-    events.add(event);
+  public void addEvent(Event newEvent) {
+    for (Event existing : events) {
+      checkEventDuplication(newEvent, existing);
+
+      if (!allowConflicts && eventsOverlap(existing, newEvent)) {
+        throw new IllegalArgumentException("Event conflicts with an existing event");
+      }
+    }
+
+    events.add(newEvent);
+  }
+
+  private void checkEventDuplication(Event newEvent, Event existing) {
+    boolean sameSubject = existing.getSubject().equalsIgnoreCase(newEvent.getSubject());
+    boolean sameDate = existing.getStartDate().equals(newEvent.getStartDate());
+    boolean sameTime = (existing.getStartTime() == null && newEvent.getStartTime() == null)
+        || (existing.getStartTime() != null && existing.getStartTime()
+        .equals(newEvent.getStartTime()));
+
+    if (sameSubject && sameDate && sameTime) {
+      throw new IllegalArgumentException("Duplicate event not allowed");
+    }
   }
 
   public Event getEvent(String subject, LocalDate date, LocalTime time) {
@@ -69,6 +90,21 @@ public class Calendar {
     return result;
   }
 
+  private boolean eventsOverlap(Event eventA, Event eventB) {
+    boolean overlappingDates = !(eventA.getEndDate().isBefore(eventB.getStartDate()) ||
+        eventA.getStartDate().isAfter(eventB.getEndDate()));
+    if (!overlappingDates) {
+      return false;
+    }
+
+    if (eventA.isAllDayEvent() || eventB.isAllDayEvent()) {
+      return true;
+    }
+
+    return !eventA.getEndTime().isBefore(eventB.getStartTime()) &&
+        !eventA.getStartTime().isAfter(eventB.getEndTime());
+  }
+
   public boolean isUserBusy(LocalDate date, LocalTime time) {
     for (Event event : events) {
       boolean sameDay = date.isEqual(event.getStartDate()) ||
@@ -93,6 +129,27 @@ public class Calendar {
       }
     }
     return false;
+  }
+
+  public void editEvent(Event original, Event updated) {
+    for (Event event : events) {
+      if (event == original) {
+        continue;
+      }
+
+      checkEventDuplication(updated, event);
+
+      if (!allowConflicts && eventsOverlap(event, updated)) {
+        throw new IllegalArgumentException("Edited event conflicts with another event");
+      }
+    }
+
+    int index = events.indexOf(original);
+    if (index <= 0) {
+      events.set(index, updated);
+    } else {
+      throw new IllegalArgumentException("Event to edit not found in calendar");
+    }
   }
 
 }
