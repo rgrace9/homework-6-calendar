@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,15 +20,18 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class CalendarTest {
 
   private Calendar calendar;
+  private Calendar exerciseCalendar;
   private LocalDate nov15;
   private LocalDate nov16;
   private Event meetingEvent;
   private Event lunchEvent;
   private Event conferenceAllDayEvent;
+  private String pilatesSeriesId;
 
   @BeforeEach
   public void setUp() {
     calendar = new Calendar("Work Calendar");
+    exerciseCalendar = new Calendar("Exercise Calendar");
     nov15 = LocalDate.of(2025, 11, 15);
     nov16 = LocalDate.of(2025, 11, 16);
     meetingEvent = new Event.Builder("Meeting", nov15, nov15)
@@ -38,6 +43,19 @@ public class CalendarTest {
         .endTime(LocalTime.of(13, 0))
         .build();
     conferenceAllDayEvent = new Event.Builder("Conference", nov16, nov16).build();
+    Event pilates = new Event.Builder("Pilates", LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(6, 0))
+        .endTime(LocalTime.of(6, 50))
+        .build();
+    RecurringEvent pilatesRecurringEvent = new RecurringEvent(
+        pilates,
+        List.of(DayOfWeek.SUNDAY, DayOfWeek.WEDNESDAY),
+        4,
+        null
+    );
+    exerciseCalendar.addRecurringEvent(pilatesRecurringEvent);
+    pilatesSeriesId = pilatesRecurringEvent.getSeriesId();
   }
 
   @Test
@@ -64,14 +82,14 @@ public class CalendarTest {
   public void addSingleEventResultsInOneEvent() {
     calendar.addEvent(meetingEvent);
 
-    assertEquals(1, calendar.getEvent().size());
+    assertEquals(1, calendar.getEvents().size());
   }
 
   @Test
   public void addSingleEventContainsEvent() {
     calendar.addEvent(meetingEvent);
 
-    assertTrue(calendar.getEvent().contains(meetingEvent));
+    assertTrue(calendar.getEvents().contains(meetingEvent));
   }
 
   @Test
@@ -80,7 +98,7 @@ public class CalendarTest {
     calendar.addEvent(lunchEvent);
     calendar.addEvent(conferenceAllDayEvent);
 
-    assertEquals(3, calendar.getEvent().size());
+    assertEquals(3, calendar.getEvents().size());
   }
 
 
@@ -268,4 +286,87 @@ public class CalendarTest {
         calendarWithConflictsAllowed.getEvent("Meeting", nov15, LocalTime.of(12, 25))
             .getStartTime());
   }
+
+  @Test
+  void addRecurringEventAddsAllInstances() {
+    assertEquals(4, exerciseCalendar.getEvents().size());
+  }
+
+  @Test
+  void recurringEventRejectedIfConflictExists() {
+    Event conflictingEvent = new Event.Builder("Stretching",
+        LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(6, 30))
+        .endTime(LocalTime.of(7, 0))
+        .build();
+
+    RecurringEvent overlappingRecurring = new RecurringEvent(
+        conflictingEvent,
+        List.of(DayOfWeek.SUNDAY),
+        2,
+        null
+    );
+
+    assertThrows(IllegalArgumentException.class,
+        () -> exerciseCalendar.addRecurringEvent(overlappingRecurring));
+  }
+
+  @Test
+  void editSingleInstanceOfRecurringEvent() {
+    Event firstInstance = exerciseCalendar.getEvents().getFirst();
+
+    Event updated = firstInstance.toBuilder()
+        .startTime(LocalTime.of(7, 0))
+        .endTime(LocalTime.of(7, 50))
+        .build();
+
+    exerciseCalendar.editSingleInstance(firstInstance, updated);
+
+    assertEquals(LocalTime.of(7, 0),
+        exerciseCalendar.getEvents().getFirst().getStartTime());
+
+    for (int i = 1; i < exerciseCalendar.getEvents().size(); i++) {
+      assertEquals(LocalTime.of(6, 0),
+          exerciseCalendar.getEvents().get(i).getStartTime());
+    }
+  }
+
+  @Test
+  void editFutureInstancesOfRecurringEvent() {
+    Event updatedTemplate = new Event.Builder("Pilates (Updated)",
+        LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(7, 0))
+        .endTime(LocalTime.of(7, 50))
+        .build();
+
+    LocalDate fromDate = LocalDate.of(2025, 11, 12); // Wednesday
+    exerciseCalendar.editFutureInstances(pilatesSeriesId, fromDate, updatedTemplate);
+
+    for (Event event : exerciseCalendar.getEvents()) {
+      if (!event.getStartDate().isBefore(fromDate)) {
+        assertEquals(LocalTime.of(7, 0), event.getStartTime());
+      } else {
+        assertEquals(LocalTime.of(6, 0), event.getStartTime());
+      }
+    }
+  }
+
+  @Test
+  void editEntireRecurringSeries() {
+    Event updatedTemplate = new Event.Builder("Pilates (Updated)",
+        LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(5, 30))
+        .endTime(LocalTime.of(6, 20))
+        .build();
+
+    exerciseCalendar.editEntireSeries(pilatesSeriesId, updatedTemplate);
+
+    for (Event e : exerciseCalendar.getEvents()) {
+      assertEquals(LocalTime.of(5, 30), e.getStartTime());
+    }
+  }
+
 }
