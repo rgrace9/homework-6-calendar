@@ -1,7 +1,10 @@
 package edu.northeastern.cs5010;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -270,6 +273,52 @@ public class Calendar {
         }
       }
     }
+  }
+
+  public void exportToCsv(String filePath) {
+    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
+
+    try (PrintWriter writer = new PrintWriter(filePath)) {
+      writer.println(
+          "Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private");
+
+      for (Event event : events) {
+        boolean isAllDay = event.isAllDayEvent();
+
+        String subject = event.getSubject();
+        String startDate = event.getStartDate().format(dateFormatter);
+        String endDate = event.getEndDate().format(dateFormatter);
+        String startTime = isAllDay ? "" : event.getStartTime().format(timeFormatter);
+        String endTime = isAllDay ? "" : event.getEndTime().format(timeFormatter);
+        String description = event.getDescription() == null ? "" : event.getDescription();
+        String location = event.getLocation() == null ? "" : event.getLocation();
+        String isPrivate = event.getVisibility() == Event.Visibility.PRIVATE ? "True" : "False";
+
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+            escapeCsv(subject),
+            startDate,
+            startTime,
+            endDate,
+            endTime,
+            isAllDay ? "True" : "False",
+            escapeCsv(description),
+            escapeCsv(location),
+            isPrivate
+        );
+      }
+
+      System.out.println("Calendar exported to " + filePath);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to export calendar: " + e.getMessage(), e);
+    }
+  }
+
+  private String escapeCsv(String text) {
+    if (text.contains(",") || text.contains("\"")) {
+      return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+    return text;
   }
 
 }
