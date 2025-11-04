@@ -12,6 +12,7 @@ public class RecurringEvent {
   private final List<DayOfWeek> daysOfWeek;
   private final Integer occurrences;
   private final LocalDate untilDate;
+  private final String seriesId;
 
   public RecurringEvent(Event baseEvent, List<DayOfWeek> daysOfWeek, Integer occurrences,
       LocalDate untilDate) {
@@ -43,12 +44,16 @@ public class RecurringEvent {
     this.daysOfWeek = new ArrayList<>(daysOfWeek);
     this.occurrences = occurrences;
     this.untilDate = untilDate;
+    this.seriesId = UUID.randomUUID().toString();
 
+  }
+
+  public String getSeriesId() {
+    return seriesId;
   }
 
   public List<Event> generateEvents() {
     List<Event> generatedEventsList = new ArrayList<>();
-    String eventSeriesId = UUID.randomUUID().toString();
 
     LocalDate eventDate = baseEvent.getStartDate();
     int createdEvents = 0;
@@ -59,7 +64,7 @@ public class RecurringEvent {
           Event recurringEvent = baseEvent.toBuilder()
               .startDate(eventDate)
               .endDate(eventDate)
-              .seriesId(eventSeriesId)
+              .seriesId(seriesId)
               .build();
           generatedEventsList.add(recurringEvent);
           createdEvents++;
@@ -73,7 +78,7 @@ public class RecurringEvent {
           Event recurringEvent = baseEvent.toBuilder()
               .startDate(eventDate)
               .endDate(eventDate)
-              .seriesId(eventSeriesId)
+              .seriesId(seriesId)
               .build();
           generatedEventsList.add(recurringEvent);
         }
