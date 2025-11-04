@@ -5,15 +5,16 @@ import java.time.LocalTime;
 
 public class Event {
 
-  private String subject;
-  private LocalDate startDate;
-  private LocalDate endDate;
+  private final String subject;
+  private final LocalDate startDate;
+  private final LocalDate endDate;
 
-  private LocalTime startTime;
-  private LocalTime endTime;
-  private String description;
-  private String location;
-  private Visibility visibility;
+  private final LocalTime startTime;
+  private final LocalTime endTime;
+  private final String description;
+  private final String location;
+  private final Visibility visibility;
+  private final String seriesId;
 
   public enum Visibility {
     PUBLIC,
@@ -31,7 +32,7 @@ public class Event {
     private String description;
     private String location;
     private Visibility visibility;
-
+    private String seriesId;
 
     public Builder(String subject, LocalDate startDate, LocalDate endDate) {
       if (subject == null || subject.trim().isEmpty()) {
@@ -90,6 +91,11 @@ public class Event {
       return this;
     }
 
+    public Builder seriesId(String id) {
+      this.seriesId = id;
+      return this;
+    }
+
     public Event build() {
       validateDateTime();
       return new Event(this);
@@ -125,6 +131,7 @@ public class Event {
     this.description = builder.description;
     this.location = builder.location;
     this.visibility = builder.visibility != null ? builder.visibility : Visibility.PUBLIC;
+    this.seriesId = builder.seriesId;
   }
 
   public String getSubject() {
@@ -157,6 +164,10 @@ public class Event {
 
   public Visibility getVisibility() {
     return visibility;
+  }
+
+  public String getSeriesId() {
+    return seriesId;
   }
 
   public Boolean isAllDayEvent() {
