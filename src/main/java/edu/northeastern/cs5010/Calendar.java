@@ -27,7 +27,7 @@ public class Calendar {
     return title;
   }
 
-  public List<Event> getEvent() {
+  public List<Event> getEvents() {
     return new ArrayList<>(events);
   }
 
@@ -144,6 +144,16 @@ public class Calendar {
     }
   }
 
+  public void editSingleInstance(Event originalEvent, Event updatedEvent) {
+  }
+
+  public void editFutureInstances(String seriesId, LocalDate fromDate, Event updatedEvent) {
+  }
+
+  public void editEntireSeries(String seriesId, Event updatedEvent) {
+
+  }
+  
   private boolean eventsOverlap(Event existingEvent, Event newEvent) {
     boolean overlappingDates = !(existingEvent.getEndDate().isBefore(newEvent.getStartDate()) ||
         existingEvent.getStartDate().isAfter(newEvent.getEndDate()));
