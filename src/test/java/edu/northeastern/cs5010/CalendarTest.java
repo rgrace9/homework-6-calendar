@@ -462,4 +462,95 @@ public class CalendarTest {
     assertNull(found);
   }
 
+  @Test
+  void recurringEventThrowsWhenBaseEventIsNull() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(null, List.of(DayOfWeek.MONDAY), 3, null);
+    });
+  }
+
+  @Test
+  void recurringEventThrowsWhenBaseEventSpansMultipleDays() {
+    Event multiDayEvent = new Event.Builder("Retreat",
+        LocalDate.of(2025, 11, 1), LocalDate.of(2025, 11, 2))
+        .build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(multiDayEvent, List.of(DayOfWeek.SATURDAY), 3, null);
+    });
+  }
+
+  @Test
+  void recurringEventThrowsWhenNoDaysProvided() {
+    Event singleDay = new Event.Builder("Yoga", nov15, nov15).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(singleDay, List.of(), 3, null);
+    });
+  }
+
+  @Test
+  void recurringEventThrowsWhenBothOccurrencesAndUntilDateProvided() {
+    Event singleDay = new Event.Builder("Yoga", nov15, nov15).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(singleDay, List.of(DayOfWeek.SATURDAY), 3, nov16);
+    });
+  }
+
+  @Test
+  void recurringEventThrowsWhenNeitherOccurrencesNorUntilDateProvided() {
+    Event singleDay = new Event.Builder("Yoga", nov15, nov15).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(singleDay, List.of(DayOfWeek.SATURDAY), null, null);
+    });
+  }
+
+  @Test
+  void recurringEventThrowsWhenOccurrencesIsZero() {
+    Event singleDay = new Event.Builder("Yoga", nov15, nov15).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      new RecurringEvent(singleDay, List.of(DayOfWeek.SATURDAY), 0, null);
+    });
+  }
+
+  @Test
+  void generateEventsWithOccurrencesGeneratesExpectedCount() {
+    Event base = new Event.Builder("Yoga", LocalDate.of(2025, 11, 3),
+        LocalDate.of(2025, 11, 3)).build();
+
+    RecurringEvent recurring = new RecurringEvent(
+        base,
+        List.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+        3,
+        null
+    );
+
+    List<Event> generated = recurring.generateEvents();
+
+    assertEquals(3, generated.size());
+    assertEquals(recurring.getSeriesId(), generated.getFirst().getSeriesId());
+  }
+
+  @Test
+  void generateEventsWithUntilDateStopsCorrectly() {
+    Event base = new Event.Builder("Class", LocalDate.of(2025, 11, 1),
+        LocalDate.of(2025, 11, 1)).build();
+
+    RecurringEvent recurring = new RecurringEvent(
+        base,
+        List.of(DayOfWeek.SATURDAY),
+        null,
+        LocalDate.of(2025, 11, 22) // 4 Saturdays total
+    );
+
+    List<Event> generated = recurring.generateEvents();
+
+    assertEquals(4, generated.size());
+    assertTrue(generated.stream().allMatch(e -> e.getSeriesId() != null));
+  }
+
+
 }
