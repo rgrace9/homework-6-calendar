@@ -2,13 +2,16 @@ package edu.northeastern.cs5010;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.northeastern.cs5010.Event.Visibility;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -304,5 +307,34 @@ class EventTest {
     Event updated = original.toBuilder().endDate(tomorrow).build();
 
     assertEquals(tomorrow, updated.getEndDate());
+  }
+
+  @Test
+  public void eventHasSeriesIdWhenRecurring() {
+    Event meeting = new Event.Builder("Meeting", today, today).build();
+    RecurringEvent meetingRecurring = new RecurringEvent(
+        meeting,
+        List.of(DayOfWeek.SUNDAY, DayOfWeek.WEDNESDAY),
+        4,
+        null
+    );
+
+    assertNotNull(meetingRecurring.getSeriesId());
+  }
+
+  @Test
+  void builderSetsSeriesIdCorrectly() {
+    String testSeriesId = "1234567890";
+
+    Event event = new Event.Builder(
+        "Yoga",
+        LocalDate.of(2025, 11, 14),
+        LocalDate.of(2025, 11, 14))
+        .startTime(java.time.LocalTime.of(9, 0))
+        .endTime(java.time.LocalTime.of(10, 0))
+        .seriesId(testSeriesId)
+        .build();
+
+    assertEquals(testSeriesId, event.getSeriesId());
   }
 }
