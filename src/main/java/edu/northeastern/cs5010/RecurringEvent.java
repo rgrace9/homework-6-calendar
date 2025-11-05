@@ -6,6 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Represents a recurring event based on a base {@link Event}. A recurring event can repeat on
+ * specified days of the week for either a given number of occurrences or until a specific end date.
+ * Each generated event shares a common seriesId to identify which series it belongs to.
+ */
 public class RecurringEvent {
 
   private final Event baseEvent;
@@ -14,6 +19,15 @@ public class RecurringEvent {
   private final LocalDate untilDate;
   private final String seriesId;
 
+  /**
+   * Creates a recurring event.
+   *
+   * @param baseEvent   the event (must start and end on the same day)
+   * @param daysOfWeek  the days of the week on which the event repeats
+   * @param occurrences the number of occurrences
+   * @param untilDate   the end date for the recurrence
+   * @throws IllegalArgumentException if validation fails
+   */
   public RecurringEvent(Event baseEvent, List<DayOfWeek> daysOfWeek, Integer occurrences,
       LocalDate untilDate) {
     if (baseEvent == null) {
@@ -48,10 +62,21 @@ public class RecurringEvent {
 
   }
 
+  /**
+   * Returns the unique identifier for this recurring series.
+   *
+   * @return the recurring series ID
+   */
   public String getSeriesId() {
     return seriesId;
   }
 
+  /**
+   * Generates all individual {@link Event} instances for this recurring series based on the days of
+   * the week and either the number of occurrences or the untilDate.
+   *
+   * @return a list of generated events in the recurring events series
+   */
   public List<Event> generateEvents() {
     List<Event> generatedEventsList = new ArrayList<>();
 
@@ -87,5 +112,4 @@ public class RecurringEvent {
     }
     return generatedEventsList;
   }
-
 }
