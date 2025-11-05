@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.northeastern.cs5010.Event.Visibility;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -401,6 +402,12 @@ public class CalendarTest {
 
   @Test
   void headerRowIsCorrect() throws IOException {
+    Event privateEvent = new Event.Builder("Meeting", nov15, nov15)
+        .startTime(LocalTime.of(20, 0))
+        .endTime(LocalTime.of(20, 30))
+        .visibility(Visibility.PRIVATE)
+        .build();
+    calendar.addEvent(privateEvent);
     calendar.addEvent(meetingEvent);
     calendar.addEvent(conferenceAllDayEvent);
     calendar.exportToCsv(tempFile.toString());
@@ -640,6 +647,70 @@ public class CalendarTest {
       calendar.editEntireSeries("nonexistent-series", meetingEvent);
     });
   }
+
+  @Test
+  void editEntireSeriesDetectsConflictWithOtherEvent() {
+    Event conflictingEvent = new Event.Builder("Yoga", LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(5, 30))
+        .endTime(LocalTime.of(6, 30))
+        .build();
+    calendar.addEvent(conflictingEvent);
+
+    Event updatedEvent = new Event.Builder("Pilates (Updated)",
+        LocalDate.of(2025, 11, 9),
+        LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(5, 45))
+        .endTime(LocalTime.of(6, 15))
+        .build();
+
+    assertThrows(IllegalArgumentException.class, () ->
+        calendar.editEntireSeries(pilatesSeriesId, updatedEvent));
+  }
+
+  @Test
+  void editEntireSeriesTriggersConflictCheckWithOtherEvent() {
+    Event yoga = new Event.Builder("Yoga", LocalDate.of(2025, 11, 9), LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(16, 0))
+        .endTime(LocalTime.of(17, 0))
+        .build();
+    exerciseCalendar.addEvent(yoga);
+
+    Event updated = new Event.Builder("Pilates (Updated)",
+        LocalDate.of(2025, 11, 9), LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(16, 0))
+        .endTime(LocalTime.of(16, 30))
+        .build();
+
+    assertThrows(IllegalArgumentException.class,
+        () -> exerciseCalendar.editEntireSeries(pilatesSeriesId, updated));
+  }
+
+  @Test
+  void editEntireSeriesAllowsConflictCheckWithOtherSeries() {
+    Calendar personalCalendar = new Calendar("Personal", true);
+    personalCalendar.addRecurringEvent(pilatesRecurringEvent);
+    Event yoga = new Event.Builder("Yoga", LocalDate.of(2025, 11, 9), LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(16, 0))
+        .endTime(LocalTime.of(17, 0))
+        .build();
+    personalCalendar.addEvent(yoga);
+
+    Event updated = new Event.Builder("Pilates (Updated)",
+        LocalDate.of(2025, 11, 9), LocalDate.of(2025, 11, 9))
+        .startTime(LocalTime.of(16, 0))
+        .endTime(LocalTime.of(16, 30))
+        .build();
+
+    personalCalendar.editEntireSeries(pilatesSeriesId, updated);
+
+    for (Event e : personalCalendar.getEvents()) {
+      if (pilatesRecurringEvent.getSeriesId().equals(e.getSeriesId())) {
+        assertEquals(LocalTime.of(16, 0), e.getStartTime());
+      }
+    }
+  }
+
 
   @Test
   void addEventConflictsWithAllDayEvent() {
