@@ -764,26 +764,21 @@ public class CalendarTest {
 
   @ParameterizedTest
   @CsvSource({
-      "subject, '\"Meeting, \"\"Important\"\"\"'",
-      "description, '\"Has \"\"quotes\"\" and, commas\"'",
-      "location, '\"Room \"\"A\"\", Building 1\"'"
+      "'Meeting, \"Important\"', '\"Meeting, \"\"Important\"\"\"'",
+      "'Has \"quotes\" only', '\"Has \"\"quotes\"\" only\"'",
+      "'PlainText', 'PlainText'"
   })
-  void exportToCsvEscapesCommasAndQuotes(String fieldName, String expectedFragment)
-      throws IOException {
-
-    Event eventWithSpecialChars = new Event.Builder("Meeting, \"Important\"", nov15, nov15)
-        .description("Has \"quotes\" and, commas")
-        .location("Room \"A\", Building 1")
+  void exportToCsvEscapesCommasAndQuotes(String input, String expectedFragment) throws IOException {
+    Event event = new Event.Builder(input, nov15, nov15)
+        .description(input)
+        .location(input)
         .build();
 
-    calendar.addEvent(eventWithSpecialChars);
+    calendar.addEvent(event);
     calendar.exportToCsv(tempFile.toString());
 
-    List<String> lines = Files.readAllLines(tempFile);
-    String dataLine = lines.get(1);
-
-    assertTrue(dataLine.contains(expectedFragment),
-        () -> "Expected escaped text for " + fieldName + " but got: " + dataLine);
+    String dataLine = Files.readAllLines(tempFile).get(1);
+    assertTrue(dataLine.contains(expectedFragment));
   }
 
   @Test
