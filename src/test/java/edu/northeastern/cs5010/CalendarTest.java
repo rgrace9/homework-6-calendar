@@ -423,4 +423,43 @@ public class CalendarTest {
     assertTrue(meetingLine.contains(expected));
   }
 
+  @Test
+  void getEventMatchesAllDayEventWhenTimeIsNull() {
+    calendar.addEvent(conferenceAllDayEvent);
+    Event found = calendar.getEvent("Conference", nov16, null);
+    assertEquals(conferenceAllDayEvent, found);
+  }
+
+  @Test
+  void getEventReturnsNullWhenSubjectDiffersByCaseAndTimeDoesNotMatch() {
+    calendar.addEvent(meetingEvent);
+
+    Event found = calendar.getEvent("DifferentSubject", nov15, LocalTime.of(9, 0));
+    assertNull(found);
+  }
+
+  @Test
+  void getEventMatchesCaseInsensitiveSubject() {
+    calendar.addEvent(meetingEvent);
+
+    Event found = calendar.getEvent("meeting", nov15, LocalTime.of(10, 0));
+    assertEquals(meetingEvent, found);
+  }
+
+  @Test
+  void getEventReturnsNullWhenAllDayEventQueriedWithTime() {
+    calendar.addEvent(conferenceAllDayEvent);
+
+    Event found = calendar.getEvent("Conference", nov16, LocalTime.of(10, 0));
+    assertNull(found);
+  }
+
+  @Test
+  void getEventReturnsNullWhenDateDoesNotMatch() {
+    calendar.addEvent(meetingEvent);
+
+    Event found = calendar.getEvent("Meeting", nov16, LocalTime.of(10, 0));
+    assertNull(found);
+  }
+
 }
