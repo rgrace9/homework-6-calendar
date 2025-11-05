@@ -31,6 +31,7 @@ public class CalendarTest {
   private Event lunchEvent;
   private Event conferenceAllDayEvent;
   private String pilatesSeriesId;
+  private RecurringEvent pilatesRecurringEvent;
   private Path tempFile;
 
   @BeforeEach
@@ -55,7 +56,7 @@ public class CalendarTest {
         .startTime(LocalTime.of(6, 0))
         .endTime(LocalTime.of(6, 50))
         .build();
-    RecurringEvent pilatesRecurringEvent = new RecurringEvent(
+    pilatesRecurringEvent = new RecurringEvent(
         pilates,
         List.of(DayOfWeek.SUNDAY, DayOfWeek.WEDNESDAY),
         4,
@@ -543,7 +544,7 @@ public class CalendarTest {
         base,
         List.of(DayOfWeek.SATURDAY),
         null,
-        LocalDate.of(2025, 11, 22) // 4 Saturdays total
+        LocalDate.of(2025, 11, 22)
     );
 
     List<Event> generated = recurring.generateEvents();
@@ -552,5 +553,193 @@ public class CalendarTest {
     assertTrue(generated.stream().allMatch(e -> e.getSeriesId() != null));
   }
 
+  @Test
+  void editEventThrowsWhenEventNotFound() {
+    calendar.addEvent(meetingEvent);
+
+    Event notInCalendar = new Event.Builder("Not Added", nov16, nov16)
+        .startTime(LocalTime.of(9, 0))
+        .endTime(LocalTime.of(10, 0))
+        .build();
+
+    Event updated = notInCalendar.toBuilder().subject("Updated").build();
+
+    assertThrows(IllegalArgumentException.class, () ->
+        calendar.editEvent(notInCalendar, updated));
+  }
+
+  @Test
+  void editSingleInstanceThrowsWithNullOriginalEvent() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editSingleInstance(null, meetingEvent);
+    });
+  }
+
+  @Test
+  void editSingleInstanceThrowsWithNullUpdatedEvent() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editSingleInstance(meetingEvent, null);
+    });
+  }
+
+  @Test
+  void editSingleInstanceThrowsWhenEventNotFound() {
+    Event notInCalendar = new Event.Builder("Not Added", nov15, nov15).build();
+    Event updated = new Event.Builder("Updated", nov15, nov15).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editSingleInstance(notInCalendar, updated);
+    });
+  }
+
+  @Test
+  void editFutureInstancesThrowsWithNullSeriesId() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editFutureInstances(null, nov15, meetingEvent);
+    });
+  }
+
+  @Test
+  void editFutureInstancesThrowsWithNullFromDate() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editFutureInstances("series123", null, meetingEvent);
+    });
+  }
+
+  @Test
+  void editFutureInstancesThrowsWithNullUpdatedEvent() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editFutureInstances("series123", nov15, null);
+    });
+  }
+
+  @Test
+  void editFutureInstancesThrowsWhenNoEventsFound() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editFutureInstances("nonexistent-series", nov15, meetingEvent);
+    });
+  }
+
+  @Test
+  void editEntireSeriesThrowsWithNullSeriesId() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editEntireSeries(null, meetingEvent);
+    });
+  }
+
+  @Test
+  void editEntireSeriesThrowsWithNullUpdatedEvent() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editEntireSeries("series123", null);
+    });
+  }
+
+  @Test
+  void editEntireSeriesThrowsWhenSeriesNotFound() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editEntireSeries("nonexistent-series", meetingEvent);
+    });
+  }
+
+  @Test
+  void addEventConflictsWithAllDayEvent() {
+    calendar.addEvent(conferenceAllDayEvent);
+
+    Event timedEvent = new Event.Builder("Timed Meeting", nov16, nov16)
+        .startTime(LocalTime.of(14, 0))
+        .endTime(LocalTime.of(15, 0))
+        .build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.addEvent(timedEvent);
+    });
+  }
+
+  @Test
+  void addEventAllDayConflictsWithAllDay() {
+    calendar.addEvent(conferenceAllDayEvent);
+
+    Event anotherAllDay = new Event.Builder("Another Conference", nov16, nov16).build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.addEvent(anotherAllDay);
+    });
+  }
+
+  @Test
+  void editSeriesCreatesConflictWithExistingEvent() {
+    exerciseCalendar.addEvent(meetingEvent);
+
+    Event conflictingUpdate = new Event.Builder("Updated Pilates", nov15, nov15)
+        .startTime(LocalTime.of(10, 15))
+        .endTime(LocalTime.of(10, 45))
+        .build();
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      calendar.editEntireSeries(pilatesRecurringEvent.getSeriesId(), conflictingUpdate);
+    });
+  }
+
+  @Test
+  void exportToCsvThrowsRuntimeExceptionOnIOError() {
+    calendar.addEvent(meetingEvent);
+
+    String invalidPath = "/nonexistent/directory/calendar.csv";
+
+    assertThrows(RuntimeException.class, () -> {
+      calendar.exportToCsv(invalidPath);
+    });
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "subject, '\"Meeting, \"\"Important\"\"\"'",
+      "description, '\"Has \"\"quotes\"\" and, commas\"'",
+      "location, '\"Room \"\"A\"\", Building 1\"'"
+  })
+  void exportToCsvEscapesCommasAndQuotes(String fieldName, String expectedFragment)
+      throws IOException {
+
+    Event eventWithSpecialChars = new Event.Builder("Meeting, \"Important\"", nov15, nov15)
+        .description("Has \"quotes\" and, commas")
+        .location("Room \"A\", Building 1")
+        .build();
+
+    calendar.addEvent(eventWithSpecialChars);
+    calendar.exportToCsv(tempFile.toString());
+
+    List<String> lines = Files.readAllLines(tempFile);
+    String dataLine = lines.get(1);
+
+    assertTrue(dataLine.contains(expectedFragment),
+        () -> "Expected escaped text for " + fieldName + " but got: " + dataLine);
+  }
+
+  @Test
+  void getEventsOnDateWithMultiDayEvent() {
+    Event multiDayEvent = new Event.Builder("Conference", nov15, nov16).build();
+    calendar.addEvent(multiDayEvent);
+
+    assertTrue(calendar.getEventsOnDate(nov15).contains(multiDayEvent));
+    assertTrue(calendar.getEventsOnDate(nov16).contains(multiDayEvent));
+  }
+
+  @Test
+  void getEventsInDateRangeExcludesOutsideEvents() {
+    Event beforeRange = new Event.Builder("Before", LocalDate.of(2025, 11, 10),
+        LocalDate.of(2025, 11, 10)).build();
+    Event afterRange = new Event.Builder("After", LocalDate.of(2025, 11, 25),
+        LocalDate.of(2025, 11, 25)).build();
+
+    calendar.addEvent(beforeRange);
+    calendar.addEvent(afterRange);
+    calendar.addEvent(meetingEvent);
+
+    List<Event> inRange = calendar.getEventsInDateRange(nov15, nov16);
+
+    assertTrue(inRange.contains(meetingEvent));
+    assertFalse(inRange.contains(beforeRange));
+    assertFalse(inRange.contains(afterRange));
+  }
 
 }
