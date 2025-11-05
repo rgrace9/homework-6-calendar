@@ -8,16 +8,33 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a calendar that stores and manages events. Supports single and recurring events and
+ * CSV export. Detects events that conflict.
+ */
 public class Calendar {
 
   private final String title;
   private boolean allowConflicts = false;
   private final List<Event> events = new ArrayList<>();
 
+  /**
+   * Creates a calendar with the given title and no event conflicts allowed.
+   *
+   * @param title the calendar title (non-empty)
+   * @throws IllegalArgumentException if the title is null or empty
+   */
   public Calendar(String title) {
     this(title, false);
   }
 
+  /**
+   * Creates a calendar with the given title and optional conflict allowance.
+   *
+   * @param title          the calendar title (non-empty)
+   * @param allowConflicts true if overlapping events are permitted, false otherwise
+   * @throws IllegalArgumentException if the title is null or empty
+   */
   public Calendar(String title, boolean allowConflicts) {
     if (title == null || title.trim().isEmpty()) {
       throw new IllegalArgumentException("Calendar title cannot be null or empty");
@@ -26,14 +43,30 @@ public class Calendar {
     this.allowConflicts = allowConflicts;
   }
 
+  /**
+   * Returns the calendar title.
+   *
+   * @return the calendar title
+   */
   public String getTitle() {
     return title;
   }
 
+  /**
+   * Returns a copy of all events in the calendar.
+   *
+   * @return a list of events
+   */
   public List<Event> getEvents() {
     return new ArrayList<>(events);
   }
 
+  /**
+   * Adds a new event to the calendar.
+   *
+   * @param newEvent the event to add
+   * @throws IllegalArgumentException if the event conflicts or duplicates another
+   */
   public void addEvent(Event newEvent) {
     for (Event existing : events) {
       checkEventConflicts(newEvent, existing, "Event conflicts with an existing event");
@@ -42,6 +75,14 @@ public class Calendar {
     events.add(newEvent);
   }
 
+  /**
+   * Finds an event matching the given subject, date, and optional time.
+   *
+   * @param subject the event subject (case-insensitive)
+   * @param date    the event date
+   * @param time    the event start time (nullable)
+   * @return the matching event, or {@code null} if not found
+   */
   public Event getEvent(String subject, LocalDate date, LocalTime time) {
     for (Event event : events) {
       boolean sameSubject = event.getSubject().equalsIgnoreCase(subject);
@@ -56,17 +97,30 @@ public class Calendar {
     return null;
   }
 
+  /**
+   * Returns all events occurring on the specific date.
+   *
+   * @param date the date to search
+   * @return a list of events on that date
+   */
   public List<Event> getEventsOnDate(LocalDate date) {
     List<Event> result = new ArrayList<>();
     for (Event event : events) {
-      if ((date.isEqual(event.getStartDate()) || date.isEqual(event.getEndDate())) ||
-          (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate()))) {
+      if ((date.isEqual(event.getStartDate()) || date.isEqual(event.getEndDate()))
+          || (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate()))) {
         result.add(event);
       }
     }
     return result;
   }
 
+  /**
+   * Returns all events within a date range.
+   *
+   * @param start the start date (inclusive)
+   * @param end   the end date (inclusive)
+   * @return a list of events in the range
+   */
   public List<Event> getEventsInDateRange(LocalDate start, LocalDate end) {
     List<Event> result = new ArrayList<>();
     for (Event event : events) {
@@ -77,11 +131,18 @@ public class Calendar {
     return result;
   }
 
+  /**
+   * Checks if the calendar has an event on the specific date and time.
+   *
+   * @param date the date to check
+   * @param time the time to check
+   * @return true if the user is busy, false if not
+   */
   public boolean isUserBusy(LocalDate date, LocalTime time) {
     for (Event event : events) {
-      boolean sameDay = date.isEqual(event.getStartDate()) ||
-          (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate())) ||
-          date.isEqual(event.getEndDate());
+      boolean sameDay = date.isEqual(event.getStartDate())
+          || (date.isAfter(event.getStartDate()) && date.isBefore(event.getEndDate()))
+          || date.isEqual(event.getEndDate());
 
       if (!sameDay) {
         continue;
@@ -94,8 +155,8 @@ public class Calendar {
       LocalTime startTime = event.getStartTime();
       LocalTime endTime = event.getEndTime();
 
-      boolean withinTime = startTime != null && endTime != null && !time.isBefore(startTime) &&
-          !time.isAfter(endTime);
+      boolean withinTime = startTime != null && endTime != null && !time.isBefore(startTime)
+          && !time.isAfter(endTime);
       if (withinTime) {
         return true;
       }
@@ -103,6 +164,13 @@ public class Calendar {
     return false;
   }
 
+  /**
+   * Edits an existing event.
+   *
+   * @param original the original event
+   * @param updated  the updated event
+   * @throws IllegalArgumentException if not found or conflicts occur
+   */
   public void editEvent(Event original, Event updated) {
     for (Event event : events) {
       if (event == original) {
@@ -124,6 +192,12 @@ public class Calendar {
     }
   }
 
+  /**
+   * Adds a recurring event and all generated instances to the calendar.
+   *
+   * @param recurringEvent the recurring event to add
+   * @throws IllegalArgumentException if any instance conflicts with existing events
+   */
   public void addRecurringEvent(RecurringEvent recurringEvent) {
     List<Event> generatedEventsList = recurringEvent.generateEvents();
     for (Event newEvent : generatedEventsList) {
@@ -131,7 +205,8 @@ public class Calendar {
         checkEventConflicts(
             newEvent,
             existingEvent,
-            "Recurring event cannot be created because at least one instance conflicts with an existing event"
+            "Recurring event cannot be created because at least one instance "
+                + "conflicts with an existing event"
         );
       }
     }
@@ -141,6 +216,13 @@ public class Calendar {
     }
   }
 
+  /**
+   * Updates a single instance of a recurring event.
+   *
+   * @param originalEvent the event to update
+   * @param updatedEvent  the new event details
+   * @throws IllegalArgumentException if missing arguments, event not found or conflicts occur
+   */
   public void editSingleInstance(Event originalEvent, Event updatedEvent) {
     if (originalEvent == null || updatedEvent == null) {
       throw new IllegalArgumentException("Events cannot be null");
@@ -164,6 +246,14 @@ public class Calendar {
     events.set(eventIndex, updatedEvent);
   }
 
+  /**
+   * Updates all future instances of a recurring event from a specific date onward.
+   *
+   * @param seriesId     the series ID
+   * @param fromDate     the date to begin updates
+   * @param updatedEvent the template for updated instances
+   * @throws IllegalArgumentException if no events found or conflicts occur
+   */
   public void editFutureInstances(String seriesId, LocalDate fromDate, Event updatedEvent) {
     if (seriesId == null || fromDate == null || updatedEvent == null) {
       throw new IllegalArgumentException("Arguments cannot be null");
@@ -191,10 +281,15 @@ public class Calendar {
             .build());
       }
     }
-
-
   }
 
+  /**
+   * Updates all events in a recurring series.
+   *
+   * @param seriesId     the series ID
+   * @param updatedEvent the new event details for the entire series
+   * @throws IllegalArgumentException if the series is not found or conflicts occur
+   */
   public void editEntireSeries(String seriesId, Event updatedEvent) {
     if (seriesId == null || updatedEvent == null) {
       throw new IllegalArgumentException("There must be a seriesId and updated event");
@@ -225,8 +320,8 @@ public class Calendar {
   }
 
   private boolean eventsOverlap(Event existingEvent, Event newEvent) {
-    boolean overlappingDates = !(existingEvent.getEndDate().isBefore(newEvent.getStartDate()) ||
-        existingEvent.getStartDate().isAfter(newEvent.getEndDate()));
+    boolean overlappingDates = !(existingEvent.getEndDate().isBefore(newEvent.getStartDate())
+        || existingEvent.getStartDate().isAfter(newEvent.getEndDate()));
     if (!overlappingDates) {
       return false;
     }
@@ -235,8 +330,8 @@ public class Calendar {
       return true;
     }
 
-    return !existingEvent.getEndTime().isBefore(newEvent.getStartTime()) &&
-        !existingEvent.getStartTime().isAfter(newEvent.getEndTime());
+    return !existingEvent.getEndTime().isBefore(newEvent.getStartTime())
+        && !existingEvent.getStartTime().isAfter(newEvent.getEndTime());
   }
 
   private void checkEventDuplication(Event existingEvent, Event newEvent) {
@@ -275,14 +370,20 @@ public class Calendar {
     }
   }
 
+  /**
+   * Exports the calendar to a CSV file in Google Calendar format.
+   *
+   * @param filePath the destination file path
+   * @throws RuntimeException if export fails
+   */
   public void exportToCsv(String filePath) {
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
     DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
 
     try (PrintWriter writer = new PrintWriter(filePath)) {
       writer.println(
-          "Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private");
-
+          "Subject,Start Date,Start Time,End Date,End Time,"
+              + "All Day Event,Description,Location,Private");
       for (Event event : events) {
         boolean isAllDay = event.isAllDayEvent();
 
