@@ -1,5 +1,7 @@
 package edu.northeastern.cs5010;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
@@ -415,11 +417,122 @@ public class Calendar {
     }
   }
 
+  /**
+   * Imports events from a CSV file in Google Calendar format.
+   *
+   * @param filePath the source file path
+   * @throws RuntimeException error if import fails
+   */
+  public void importFromCsv(String filePath) {
+    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      String headerLine = reader.readLine(); // Skip header
+      if (headerLine == null) {
+        throw new RuntimeException("CSV file is empty");
+      }
+
+      String line;
+      int lineNumber = 1;
+      while ((line = reader.readLine()) != null) {
+        lineNumber++;
+        try {
+          List<String> fields = parseCsv(line);
+
+          if (fields.size() != 9) {
+            throw new RuntimeException("Invalid CSV format at line " + lineNumber
+                + ": expected 9 fields, got " + fields.size());
+          }
+
+          String subject = fields.get(0);
+          String startDateStr = fields.get(1);
+          String startTimeStr = fields.get(2);
+          String endDateStr = fields.get(3);
+          String endTimeStr = fields.get(4);
+          String allDayStr = fields.get(5);
+          String description = fields.get(6);
+          String location = fields.get(7);
+          String isPrivateStr = fields.get(8);
+
+          LocalDate startDate = LocalDate.parse(startDateStr, dateFormatter);
+          LocalDate endDate = LocalDate.parse(endDateStr, dateFormatter);
+
+          Event.Builder builder = new Event.Builder(subject, startDate, endDate);
+
+          boolean isAllDay = allDayStr.equalsIgnoreCase("True");
+          if (!isAllDay && !startTimeStr.isEmpty() && !endTimeStr.isEmpty()) {
+            LocalTime startTime = LocalTime.parse(startTimeStr, timeFormatter);
+            LocalTime endTime = LocalTime.parse(endTimeStr, timeFormatter);
+            builder.startTime(startTime).endTime(endTime);
+          }
+
+          if (!description.isEmpty()) {
+            builder.description(description);
+          }
+
+          if (!location.isEmpty()) {
+            builder.location(location);
+          }
+
+          if (isPrivateStr.equalsIgnoreCase("True")) {
+            builder.visibility(Event.Visibility.PRIVATE);
+          } else {
+            builder.visibility(Event.Visibility.PUBLIC);
+          }
+
+          Event event = builder.build();
+          addEvent(event);
+
+        } catch (Exception e) {
+          throw new RuntimeException("Error parsing line " + lineNumber + ": "
+              + e.getMessage(), e);
+        }
+      }
+
+      System.out.println("Calendar imported from " + filePath);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to import calendar: " + e.getMessage(), e);
+    }
+  }
+
   private String escapeCsv(String text) {
     if (text.contains(",") || text.contains("\"")) {
       return "\"" + text.replace("\"", "\"\"") + "\"";
     }
     return text;
   }
+
+  private List<String> parseCsv(String line) {
+    List<String> fields = new ArrayList<>();
+    StringBuilder currentField = new StringBuilder();
+    boolean inQuotes = false;
+
+    for (int i = 0; i < line.length(); i++) {
+      char c = line.charAt(i);
+
+      if (c == '"') {
+        if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+          // Escaped quote - add one quote and skip next
+          currentField.append('"');
+          i++;
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (c == ',' && !inQuotes) {
+        // End of field
+        fields.add(currentField.toString());
+        currentField = new StringBuilder();
+      } else {
+        currentField.append(c);
+      }
+    }
+
+    fields.add(currentField.toString());
+
+    return fields;
+  }
+
 
 }
