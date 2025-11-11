@@ -1,4 +1,4 @@
-package edu.northeastern.cs5010;
+package edu.northeastern.cs5010.model;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

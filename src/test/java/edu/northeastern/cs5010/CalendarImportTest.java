@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.northeastern.cs5010.model.Calendar;
+import edu.northeastern.cs5010.model.Event;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;

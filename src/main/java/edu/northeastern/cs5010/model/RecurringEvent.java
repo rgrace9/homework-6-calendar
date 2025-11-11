@@ -1,4 +1,4 @@
-package edu.northeastern.cs5010;
+package edu.northeastern.cs5010.model;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

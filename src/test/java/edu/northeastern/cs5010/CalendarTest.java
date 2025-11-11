@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import edu.northeastern.cs5010.Event.Visibility;
+import edu.northeastern.cs5010.model.Calendar;
+import edu.northeastern.cs5010.model.Event;
+import edu.northeastern.cs5010.model.Event.Visibility;
+import edu.northeastern.cs5010.model.RecurringEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
