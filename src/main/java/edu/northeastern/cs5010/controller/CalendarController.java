@@ -1,27 +1,29 @@
 package edu.northeastern.cs5010.controller;
 
 import edu.northeastern.cs5010.model.Calendar;
-import edu.northeastern.cs5010.view.CalendarView;
+import edu.northeastern.cs5010.model.Event;
+import edu.northeastern.cs5010.view.CreateEventView;
+import edu.northeastern.cs5010.view.EventDetailView;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.List;
+import javax.swing.SwingUtilities;
 
 /**
- * Manages a collection of calendars and handles saving and restoring them.
- *
- * @param calendars the list of calendars managed by this controller
+ * Controller responsible for restoring, managing, and saving calendars.
  */
-public record CalendarController(List<Calendar> calendars, Path storagePath) {
+public class CalendarController {
 
-  /**
-   * Creates a controller for the specified list of calendars.
-   *
-   */
+  private final List<Calendar> calendars;
+  private final Path storagePath;
+
   public CalendarController(List<Calendar> calendars) {
-    this(calendars, Paths.get("calendars"));
+    this.calendars = calendars;
+    this.storagePath = Paths.get("calendars");
   }
 
   /**
@@ -31,6 +33,7 @@ public record CalendarController(List<Calendar> calendars, Path storagePath) {
     if (calendars.isEmpty()) {
       return;
     }
+
     try {
       if (!Files.exists(storagePath)) {
         Files.createDirectories(storagePath);
@@ -47,24 +50,66 @@ public record CalendarController(List<Calendar> calendars, Path storagePath) {
   }
 
   /**
-   * Restores all calendars from the CSV files inside the storage path.
-   *
+   * Restores all calendars from CSV files inside the storage path.
    */
   public void restoreAllCalendars() {
     calendars.clear();
     if (!Files.exists(storagePath)) {
       return;
     }
+
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(storagePath, "*.csv")) {
       for (Path file : stream) {
         String name = file.getFileName().toString().replaceFirst("[.][^.]+$", "");
         Calendar calendar = new Calendar(name);
         calendar.importFromCsv(file.toString());
         calendars.add(calendar);
-        calendar.addCalendarListener(new CalendarView());
       }
+      System.out.println("Calendars restored from " + storagePath);
     } catch (IOException e) {
       System.err.println("Error restoring calendars: " + e.getMessage());
     }
+  }
+
+  /**
+   * Returns the list of calendars.
+   */
+  public List<Calendar> getCalendars() {
+    return calendars;
+  }
+
+  /**
+   * Starts the calendar app: restores calendars, opens views, and saves changes on exit.
+   */
+  public static void main(String[] args) {
+    SwingUtilities.invokeLater(() -> {
+      List<Calendar> calendars = new java.util.ArrayList<>();
+      CalendarController controller = new CalendarController(calendars);
+
+      controller.restoreAllCalendars();
+
+      if (controller.getCalendars().isEmpty()) {
+        controller.getCalendars().add(new Calendar("Personal Calendar"));
+      }
+
+      Calendar selectedCalendar = controller.getCalendars().getFirst();
+
+      if (selectedCalendar.getEvents().isEmpty()) {
+        Event sample = new Event.Builder("Welcome!", LocalDate.now(), LocalDate.now())
+            .description("Your first event!")
+            .build();
+        selectedCalendar.addEvent(sample);
+      }
+
+      Event sampleEvent = selectedCalendar.getEvents().getLast();
+
+      CreateEventView createView = new CreateEventView(selectedCalendar);
+      createView.setVisible(true);
+
+      EventDetailView detailView = new EventDetailView(selectedCalendar, sampleEvent);
+      detailView.setVisible(true);
+
+      Runtime.getRuntime().addShutdownHook(new Thread(controller::saveAllCalendars));
+    });
   }
 }
