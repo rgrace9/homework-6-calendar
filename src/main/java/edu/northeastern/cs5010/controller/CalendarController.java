@@ -13,58 +13,54 @@ import java.util.List;
  *
  * @param calendars the list of calendars managed by this controller
  */
-public record CalendarController(List<Calendar> calendars) {
+public record CalendarController(List<Calendar> calendars, Path storagePath) {
 
   /**
    * Creates a controller for the specified list of calendars.
    *
    */
-  public CalendarController {
+  public CalendarController(List<Calendar> calendars) {
+    this(calendars, Paths.get("calendars"));
   }
 
   /**
-   * Saves all calendars to individual CSV files inside "calendars" directory.
+   * Saves all calendars to individual CSV files inside the storage path.
    */
   public void saveAllCalendars() {
-    Path folder = Paths.get("calendars");
+    if (calendars.isEmpty()) {
+      return;
+    }
     try {
-      if (!Files.exists(folder)) {
-        Files.createDirectories(folder);
+      if (!Files.exists(storagePath)) {
+        Files.createDirectories(storagePath);
       }
 
       for (Calendar calendar : calendars) {
-        Path file = folder.resolve(calendar.getTitle() + ".csv");
+        Path file = storagePath.resolve(calendar.getTitle() + ".csv");
         calendar.exportToCsv(file.toString());
       }
-      System.out.println("All calendars saved successfully!");
+      System.out.println("All calendars saved successfully to " + storagePath);
     } catch (IOException e) {
       System.err.println("Error saving calendars: " + e.getMessage());
     }
   }
 
   /**
-   * Restores all calendars from the CSV files inside the "calendars" directory
+   * Restores all calendars from the CSV files inside the storage path.
    *
    */
   public void restoreAllCalendars() {
-    Path folder = Paths.get("calendars");
     calendars.clear();
-
-    if (!Files.exists(folder)) {
-      System.out.println("No saved calendars found.");
+    if (!Files.exists(storagePath)) {
       return;
     }
-
-    try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.csv")) {
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(storagePath, "*.csv")) {
       for (Path file : stream) {
-        String fileName = file.getFileName().toString();
-        String calendarName = fileName.replaceFirst("[.][^.]+$", "");
-
-        Calendar calendar = new Calendar(calendarName);
+        String name = file.getFileName().toString().replaceFirst("[.][^.]+$", "");
+        Calendar calendar = new Calendar(name);
         calendar.importFromCsv(file.toString());
         calendars.add(calendar);
       }
-      System.out.println("All calendars restored successfully!");
     } catch (IOException e) {
       System.err.println("Error restoring calendars: " + e.getMessage());
     }
