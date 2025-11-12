@@ -560,23 +560,13 @@ public class Calendar {
     Objects.requireNonNull(listener);
     listeners.remove(listener);
   }
-
-  /**
-   * Notifies all registered listeners that an event was added.
-   *
-   * @param event the event that was added
-   */
+  
   private void announceEventAdded(Event event) {
     for (CalendarListener listener : new ArrayList<>(listeners)) {
       listener.onEventAdded(event);
     }
   }
 
-  /**
-   * Notifies all registered listeners that an event was replaced.
-   *
-   * @param event the event that was replaced
-   */
   private void announceEventReplaced(Event event) {
     for (CalendarListener listener : new ArrayList<>(listeners)) {
       listener.onEventReplaced(event);
