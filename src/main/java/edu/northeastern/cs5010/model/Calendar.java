@@ -453,7 +453,7 @@ public class Calendar {
           String allDayStr = fields.get(5);
           String description = fields.get(6);
           String location = fields.get(7);
-          String isPrivateStr = fields.get(8);
+          final String isPrivateStr = fields.get(8);
 
           LocalDate startDate = LocalDate.parse(startDateStr, dateFormatter);
           LocalDate endDate = LocalDate.parse(endDateStr, dateFormatter);

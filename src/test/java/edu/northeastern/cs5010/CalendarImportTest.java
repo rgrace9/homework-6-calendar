@@ -58,7 +58,7 @@ class CalendarImportTest {
 
     Event projectReview = calendar.getEvent("Project Review, Q4",
         LocalDate.of(2025, 11, 22), LocalTime.of(14, 0));
-    assertNotNull(projectReview, "Project Review should be imported");
+    assertNotNull(projectReview);
     assertEquals("Project Review, Q4", projectReview.getSubject());
     assertEquals("Review quarterly goals, metrics", projectReview.getDescription());
     assertEquals("Room 123, Building B", projectReview.getLocation());
@@ -81,26 +81,6 @@ class CalendarImportTest {
     assertNull(dentist.getDescription());
     assertNull(dentist.getLocation());
     assertEquals(Event.Visibility.PRIVATE, dentist.getVisibility());
-  }
-
-  private Calendar getCalendar() throws FileNotFoundException {
-    Path csvFile = tempDir.resolve("test_calendar.csv");
-    try (PrintWriter writer = new PrintWriter(csvFile.toFile())) {
-      writer.println(
-          "Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private");
-      writer.println(
-          "Team Meeting,11/15/2025,10:00 AM,11/15/2025,11:00 AM,False,Weekly sync,Conference Room A,False");
-      writer.println(
-          "Birthday Party,11/20/2025,,,11/20/2025,,True,John's birthday celebration,His house,True");
-      writer.println(
-          "\"Project Review, Q4\",11/22/2025,2:00 PM,11/22/2025,4:00 PM,False,\"Review quarterly goals, metrics\",\"Room 123, Building B\",False");
-      writer.println("Vacation,12/01/2025,,,12/05/2025,,True,,,False");
-      writer.println("Dentist Appointment,11/18/2025,9:30 AM,11/18/2025,10:30 AM,False,,,True");
-    }
-
-    Calendar calendar = new Calendar("Test Calendar");
-    calendar.importFromCsv(csvFile.toString());
-    return calendar;
   }
 
   @Test
@@ -209,4 +189,25 @@ class CalendarImportTest {
 
     assertTrue(exception.getMessage().contains("Failed to import calendar"));
   }
+
+  private Calendar getCalendar() throws FileNotFoundException {
+    Path csvFile = tempDir.resolve("test_calendar.csv");
+    try (PrintWriter writer = new PrintWriter(csvFile.toFile())) {
+      writer.println(
+          "Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private");
+      writer.println(
+          "Team Meeting,11/15/2025,10:00 AM,11/15/2025,11:00 AM,False,Weekly sync,Conference Room A,False");
+      writer.println(
+          "Birthday Party,11/20/2025,,11/20/2025,,True,John's birthday celebration,His house,True");
+      writer.println(
+          "\"Project Review, Q4\",11/22/2025,2:00 PM,11/22/2025,4:00 PM,False,\"Review quarterly goals, metrics\",\"Room 123, Building B\",False");
+      writer.println("Vacation,12/01/2025,,12/05/2025,,True,,,False");
+      writer.println("Dentist Appointment,11/18/2025,9:30 AM,11/18/2025,10:30 AM,False,,,True");
+    }
+
+    Calendar calendar = new Calendar("Test Calendar");
+    calendar.importFromCsv(csvFile.toString());
+    return calendar;
+  }
+
 }
