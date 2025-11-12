@@ -9,6 +9,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a calendar that stores and manages events. Supports single and recurring events and
@@ -546,6 +547,7 @@ public class Calendar {
    * @param listener the listener to add
    */
   public void addCalendarListener(CalendarListener listener) {
+    Objects.requireNonNull(listener);
     listeners.add(listener);
   }
 
@@ -555,6 +557,7 @@ public class Calendar {
    * @param listener the listener to remove
    */
   public void removeCalendarListener(CalendarListener listener) {
+    Objects.requireNonNull(listener);
     listeners.remove(listener);
   }
 
@@ -564,7 +567,7 @@ public class Calendar {
    * @param event the event that was added
    */
   private void announceEventAdded(Event event) {
-    for (CalendarListener listener : listeners) {
+    for (CalendarListener listener : new ArrayList<>(listeners)) {
       listener.onEventAdded(event);
     }
   }
@@ -575,7 +578,7 @@ public class Calendar {
    * @param event the event that was replaced
    */
   private void announceEventReplaced(Event event) {
-    for (CalendarListener listener : listeners) {
+    for (CalendarListener listener : new ArrayList<>(listeners)) {
       listener.onEventReplaced(event);
     }
   }
