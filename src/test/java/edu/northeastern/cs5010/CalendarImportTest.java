@@ -158,7 +158,7 @@ class CalendarImportTest {
     originalCalendar.addEvent(event2);
 
     Path exportFile = tempDir.resolve("export.csv");
-    originalCalendar.exportToCsv(exportFile.toString());
+    originalCalendar.exportToCsv(exportFile.toString(), true);
 
     Calendar importedCalendar = new Calendar("Imported Calendar");
     importedCalendar.importFromCsv(exportFile.toString());

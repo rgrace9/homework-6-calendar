@@ -385,14 +385,20 @@ public class Calendar {
    * @param filePath the destination file path
    * @throws RuntimeException if export fails
    */
-  public void exportToCsv(String filePath) {
+  public void exportToCsv(String filePath, boolean forGoogleCalendar) {
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
     DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
 
     try (PrintWriter writer = new PrintWriter(filePath)) {
-      writer.println(
-          "Subject,Start Date,Start Time,End Date,End Time,"
-              + "All Day Event,Description,Location,Private");
+      if (forGoogleCalendar) {
+        writer.println(
+            "Subject,Start Date,Start Time,End Date,End Time,"
+                + "All Day Event,Description,Location,Private");
+      } else {
+        writer.println(
+            "Subject,Start Date,Start Time,End Date,End Time,"
+                + "All Day Event,Description,Location,Private,Series ID");
+      }
       for (Event event : events) {
         boolean isAllDay = event.isAllDayEvent();
 
@@ -405,17 +411,34 @@ public class Calendar {
         String location = event.getLocation() == null ? "" : event.getLocation();
         String isPrivate = event.getVisibility() == Event.Visibility.PRIVATE ? "True" : "False";
 
-        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
-            escapeCsv(subject),
-            startDate,
-            startTime,
-            endDate,
-            endTime,
-            isAllDay ? "True" : "False",
-            escapeCsv(description),
-            escapeCsv(location),
-            isPrivate
-        );
+        if (forGoogleCalendar) {
+          writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+              escapeCsv(subject),
+              startDate,
+              startTime,
+              endDate,
+              endTime,
+              isAllDay ? "True" : "False",
+              escapeCsv(description),
+              escapeCsv(location),
+              isPrivate
+          );
+        } else {
+          String seriesId = event.getSeriesId() == null ? "" : event.getSeriesId();
+          writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+              escapeCsv(subject),
+              startDate,
+              startTime,
+              endDate,
+              endTime,
+              isAllDay ? "True" : "False",
+              escapeCsv(description),
+              escapeCsv(location),
+              isPrivate,
+              seriesId
+          );
+        }
+
       }
 
       System.out.println("Calendar exported to " + filePath);
@@ -446,8 +469,9 @@ public class Calendar {
         lineNumber++;
         try {
           List<String> fields = parseCsv(line);
+          String seriesId = (fields.size() == 10) ? fields.get(9).trim() : null;
 
-          if (fields.size() != 9) {
+          if (fields.size() < 9 || fields.size() > 10) {
             throw new RuntimeException("Invalid CSV format at line " + lineNumber
                 + ": expected 9 fields, got " + fields.size());
           }
@@ -486,6 +510,10 @@ public class Calendar {
             builder.visibility(Event.Visibility.PRIVATE);
           } else {
             builder.visibility(Event.Visibility.PUBLIC);
+          }
+
+          if (seriesId != null) {
+            builder.seriesId(seriesId);
           }
 
           Event event = builder.build();
@@ -560,7 +588,7 @@ public class Calendar {
     Objects.requireNonNull(listener);
     listeners.remove(listener);
   }
-  
+
   private void announceEventAdded(Event event) {
     for (CalendarListener listener : new ArrayList<>(listeners)) {
       listener.onEventAdded(event);

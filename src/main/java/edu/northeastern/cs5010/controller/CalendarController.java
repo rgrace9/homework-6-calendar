@@ -41,7 +41,7 @@ public class CalendarController {
 
       for (Calendar calendar : calendars) {
         Path file = storagePath.resolve(calendar.getTitle() + ".csv");
-        calendar.exportToCsv(file.toString());
+        calendar.exportToCsv(file.toString(), false);
       }
       System.out.println("All calendars saved successfully to " + storagePath);
     } catch (IOException e) {

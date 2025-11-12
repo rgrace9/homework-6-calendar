@@ -413,7 +413,7 @@ public class CalendarTest {
     calendar.addEvent(privateEvent);
     calendar.addEvent(meetingEvent);
     calendar.addEvent(conferenceAllDayEvent);
-    calendar.exportToCsv(tempFile.toString());
+    calendar.exportToCsv(tempFile.toString(), true);
 
     List<String> lines = Files.readAllLines(tempFile);
     assertEquals(
@@ -427,7 +427,7 @@ public class CalendarTest {
   void meetingEventRowContainsExpectedValues(String expected) throws IOException {
     calendar.addEvent(meetingEvent);
     calendar.addEvent(conferenceAllDayEvent);
-    calendar.exportToCsv(tempFile.toString());
+    calendar.exportToCsv(tempFile.toString(), true);
 
     List<String> lines = Files.readAllLines(tempFile);
     String meetingLine = lines.get(1);
@@ -761,7 +761,7 @@ public class CalendarTest {
     String invalidPath = "/nonexistent/directory/calendar.csv";
 
     assertThrows(RuntimeException.class, () -> {
-      calendar.exportToCsv(invalidPath);
+      calendar.exportToCsv(invalidPath, true);
     });
   }
 
@@ -778,7 +778,7 @@ public class CalendarTest {
         .build();
 
     calendar.addEvent(event);
-    calendar.exportToCsv(tempFile.toString());
+    calendar.exportToCsv(tempFile.toString(), true);
 
     String dataLine = Files.readAllLines(tempFile).get(1);
     assertTrue(dataLine.contains(expectedFragment));
