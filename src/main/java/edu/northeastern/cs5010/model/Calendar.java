@@ -20,6 +20,8 @@ public class Calendar {
   private boolean allowConflicts = false;
   private final List<Event> events = new ArrayList<>();
 
+  private final List<CalendarListener> listeners = new ArrayList<>();
+
   /**
    * Creates a calendar with the given title and no event conflicts allowed.
    *
@@ -75,6 +77,7 @@ public class Calendar {
     }
 
     events.add(newEvent);
+    announceEventAdded(newEvent);
   }
 
   /**
@@ -246,6 +249,7 @@ public class Calendar {
       );
     }
     events.set(eventIndex, updatedEvent);
+    announceEventReplaced(updatedEvent);
   }
 
   /**
@@ -281,6 +285,7 @@ public class Calendar {
             .endDate(e.getEndDate())
             .seriesId(seriesId)
             .build());
+        announceEventReplaced(updatedEvent);
       }
     }
   }
@@ -317,6 +322,7 @@ public class Calendar {
             .endDate(e.getEndDate())
             .seriesId(seriesId)
             .build());
+        announceEventReplaced(updatedEvent);
       }
     }
   }
@@ -534,5 +540,43 @@ public class Calendar {
     return fields;
   }
 
+  /**
+   * Registers a listener to receive event notifications for the calendar.
+   *
+   * @param listener the listener to add
+   */
+  public void addCalendarListener(CalendarListener listener) {
+    listeners.add(listener);
+  }
 
+  /**
+   * Unregisters a listener so it no longer receives event notifications.
+   *
+   * @param listener the listener to remove
+   */
+  public void removeCalendarListener(CalendarListener listener) {
+    listeners.remove(listener);
+  }
+
+  /**
+   * Notifies all registered listeners that an event was added.
+   *
+   * @param event the event that was added
+   */
+  private void announceEventAdded(Event event) {
+    for (CalendarListener listener : listeners) {
+      listener.onEventAdded(event);
+    }
+  }
+
+  /**
+   * Notifies all registered listeners that an event was replaced.
+   *
+   * @param event the event that was replaced
+   */
+  private void announceEventReplaced(Event event) {
+    for (CalendarListener listener : listeners) {
+      listener.onEventReplaced(event);
+    }
+  }
 }

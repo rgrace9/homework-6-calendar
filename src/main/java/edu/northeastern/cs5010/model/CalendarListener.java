@@ -6,14 +6,14 @@ package edu.northeastern.cs5010.model;
 public interface CalendarListener {
 
   /**
-   * Notifies when an event is added to a calendar.
+   * Called when an event is added to a calendar.
    *
    * @param event the event that was added
    */
   void onEventAdded(Event event);
 
   /**
-   * Notifies when an event is replaced in a calendar.
+   * Called when an event is replaced in a calendar.
    *
    * @param event the replaced event
    */

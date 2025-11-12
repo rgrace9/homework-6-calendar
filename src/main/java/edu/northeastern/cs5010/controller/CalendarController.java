@@ -1,6 +1,7 @@
 package edu.northeastern.cs5010.controller;
 
 import edu.northeastern.cs5010.model.Calendar;
+import edu.northeastern.cs5010.view.CalendarView;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -60,6 +61,7 @@ public record CalendarController(List<Calendar> calendars, Path storagePath) {
         Calendar calendar = new Calendar(name);
         calendar.importFromCsv(file.toString());
         calendars.add(calendar);
+        calendar.addCalendarListener(new CalendarView());
       }
     } catch (IOException e) {
       System.err.println("Error restoring calendars: " + e.getMessage());
